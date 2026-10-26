@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>单机阿瓦隆</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Serif+SC:wght@600;900&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-cn">阿瓦隆</span>
+      <span class="brand-en">AVALON</span>
+    </div>
+    <div class="topbar-status" id="status" aria-live="polite"></div>
+    <nav class="topbar-actions">
+      <button type="button" class="btn ghost" id="btn-identity" hidden>我的身份</button>
+      <button type="button" class="btn ghost" id="btn-rules">规则</button>
+      <button type="button" class="btn ghost" id="btn-new">新游戏</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="hall">
+      <div class="table" id="table">
+        <div class="table-center" id="table-center"></div>
+      </div>
+      <div class="dock" id="dock" aria-live="polite"></div>
+    </section>
+
+    <aside class="chronicle">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" class="tab" id="tab-log" aria-selected="true">编年史</button>
+        <button type="button" role="tab" class="tab" id="tab-votes" aria-selected="false">投票记录</button>
+      </div>
+      <ol class="log" id="log"></ol>
+      <div class="ledger-wrap" id="ledger" hidden></div>
+    </aside>
+  </main>
+</div>
+
+<!-- 开局设置 -->
+<div class="overlay" id="setup">
+  <form class="sheet setup" id="setup-form">
+    <h1 class="sheet-title">召集圆桌</h1>
+    <p class="sheet-lead">你坐在 1 号位，其余座位由 AI 骑士入座。好人要完成三次任务，坏人要让三次任务失败，或在最后刺杀梅林。</p>
+
+    <fieldset class="field">
+      <legend>玩家人数</legend>
+      <div class="seg" id="setup-count"></div>
+    </fieldset>
+
+    <fieldset class="field">
+      <legend>可选角色</legend>
+      <div class="checks">
+        <label class="check good"><input type="checkbox" id="opt-percival"> 派西维尔</label>
+        <label class="check evil"><input type="checkbox" id="opt-morgana"> 莫甘娜</label>
+        <label class="check evil"><input type="checkbox" id="opt-mordred"> 莫德雷德</label>
+        <label class="check evil"><input type="checkbox" id="opt-oberon"> 奥伯伦</label>
+        <label class="check"><input type="checkbox" id="opt-lady"> 湖中仙女</label>
+      </div>
+      <p class="roster" id="setup-roster"></p>
+      <p class="error" id="setup-error" hidden></p>
+    </fieldset>
+
+    <div class="field-row">
+      <label class="field">
+        <span class="legend">我的角色</span>
+        <select id="setup-role"></select>
+      </label>
+      <label class="field">
+        <span class="legend">AI 水平</span>
+        <select id="setup-level">
+          <option value="easy">新手</option>
+          <option value="normal" selected>熟练</option>
+          <option value="hard">老练</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="legend">节奏</span>
+        <select id="setup-speed">
+          <option value="1.6">从容</option>
+          <option value="1" selected>正常</option>
+          <option value="0.45">紧凑</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" id="setup-cancel" hidden>返回对局</button>
+      <button type="submit" class="btn primary">入座开局</button>
+    </div>
+  </form>
+</div>
+
+<!-- 身份牌 -->
+<div class="overlay" id="identity" hidden>
+  <div class="sheet identity" id="identity-card"></div>
+</div>
+
+<!-- 结局 -->
+<div class="overlay" id="ending" hidden>
+  <div class="sheet ending" id="ending-card"></div>
+</div>
+
+<!-- 规则 -->
+<div class="overlay" id="rules" hidden>
+  <div class="sheet rules">
+    <h2 class="sheet-title">规则速览</h2>
+    <div class="rules-body">
+      <p><b>阵营。</b>好人（亚瑟的骑士）人数多但互不相识；坏人（莫德雷德的爪牙）人数少，但大多彼此认识。</p>
+      <p><b>组队。</b>每轮由队长挑选规定人数的队员，所有人公开投票。超过半数赞成才算通过，否则队长顺延。同一轮连续五次组队被否决，坏人直接获胜。</p>
+      <p><b>任务。</b>队员暗中出牌：好人只能出"成功"，坏人可以出"成功"或"失败"。出现一张失败票任务就失败（7 人及以上的第四个任务需要两张）。</p>
+      <p><b>胜负。</b>三次任务失败，坏人获胜。三次任务成功后，刺客可以指认梅林：指认正确坏人翻盘，否则好人获胜。</p>
+      <p><b>角色。</b>梅林看得到除莫德雷德外的坏人；派西维尔看得到梅林和莫甘娜但分不清；奥伯伦是孤立的坏人，梅林能看到他，其他坏人看不到。</p>
+      <p><b>湖中仙女。</b>第二、三、四个任务结束后，持有者查验一名未持有过的玩家的阵营，然后把湖中仙女交给对方。持有者可以如实公布、说谎或保持沉默。</p>
+      <p><b>讨论。</b>每次任务结束后大家依次发言，可以怀疑或信任某人。AI 会认真听：好人倾向说实话，坏人会栽赃。</p>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn primary" data-close="rules">明白了</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/rules.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

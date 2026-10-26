@@ -194,20 +194,36 @@
       '{X}这几轮的投票让我很不放心。',
       '我觉得{X}是坏人的可能性很大。',
       '建议下一轮别带{X}。',
+      '{X}的票型和坏人太像了。',
+      '如果只能排除一个人，我排除{X}。',
+      '{X}一直在替可疑的队伍投赞成。',
+      '我盯{X}很久了，越看越不对。',
     ],
     accuseFail: [
       '上一轮的失败票，我觉得出在{X}身上。',
       '失败的任务里有{X}，嫌疑最大。',
+      '失败票总得有人出，{X}最说不清楚。',
+      '那次任务失败，我第一个怀疑的就是{X}。',
+    ],
+    agree: [
+      '同意{S}的看法，{X}确实可疑。',
+      '我和{S}想的一样，{X}有问题。',
+      '{S}说得对，{X}要重点提防。',
     ],
     trust: [
       '{X}目前看起来是好人。',
       '我愿意相信{X}。',
       '{X}的表现很正，可以带。',
+      '我觉得{X}没问题。',
+      '{X}这几票投得很干净。',
+      '下一轮我会带上{X}。',
     ],
     none: [
       '信息还不够，我再观察一轮。',
       '暂时没有明确的怀疑对象。',
       '我先听听大家怎么说。',
+      '局势还很乱，我保留意见。',
+      '我还在对票型，先不点名。',
     ],
   };
 
@@ -476,15 +492,25 @@
     }
 
     phrase(view, accuse, trust) {
-      const fill = (tpl, id) => tpl.replace('{X}', this.names[id]);
+      const said = view.speeches.filter((sp) => sp.round === view.round);
+      const usedText = said.map((sp) => sp.text).join('|');
+      // 优先选用本轮还没人说过的句式
+      const pick = (pool, vars) => {
+        const lines = this.rng.shuffle(pool.slice()).map((tpl) => tpl
+          .replace('{X}', vars.X !== undefined ? this.names[vars.X] : '')
+          .replace('{S}', vars.S !== undefined ? this.names[vars.S] : ''));
+        return lines.find((line) => !usedText.includes(line)) || lines[0];
+      };
       const parts = [];
       if (accuse !== null) {
+        const echo = said.find((sp) => sp.accuse === accuse && sp.speaker !== this.me);
         const last = view.quests[view.quests.length - 1];
-        const pool = last && !last.success && last.team.includes(accuse) ? LINES.accuseFail : LINES.accuse;
-        parts.push(fill(this.rng.pick(pool), accuse));
+        if (echo && this.chance(0.5)) parts.push(pick(LINES.agree, { X: accuse, S: echo.speaker }));
+        else if (last && !last.success && last.team.includes(accuse)) parts.push(pick(LINES.accuseFail, { X: accuse }));
+        else parts.push(pick(LINES.accuse, { X: accuse }));
       }
-      if (trust !== null) parts.push(fill(this.rng.pick(LINES.trust), trust));
-      if (!parts.length) parts.push(this.rng.pick(LINES.none));
+      if (trust !== null) parts.push(pick(LINES.trust, { X: trust }));
+      if (!parts.length) parts.push(pick(LINES.none, {}));
       return parts.join('');
     }
 
