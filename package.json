@@ -1,0 +1,12 @@
+{
+  "name": "avalon-solo",
+  "version": "1.0.0",
+  "description": "单机阿瓦隆：在浏览器里与 AI 对战的《抵抗组织：阿瓦隆》",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "simulate": "node scripts/simulate.js",
+    "build": "node scripts/build.js"
+  }
+}
